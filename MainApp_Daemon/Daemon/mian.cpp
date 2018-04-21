@@ -1,52 +1,88 @@
-﻿#include <iostream>
+﻿
+/***
+ * author: Devin
+ * date:  2018/04/21
+ * brief: @
+***/
+
+#include <iostream>
 #include <windows.h>
+#include <thread>
+#include <mutex>
+#include "daemon.h"
 
 
 using namespace std;
 
-#define _NAMED_PIPE_NAME "\\\\.\\Pipe\\zdst_smart_gateway"
+static bool _pipeConnected = false;
+static unsigned int _index = 0;
 
 
-int main()
+int main(int argc, char *argv[])
 {
 
-    char buf[256] = "";
+    char    buf[256] = "";
 
-        DWORD rlen = 0;
+    DWORD   rlen = 0;
+    HANDLE  hPipe;
 
-        HANDLE hPipe = CreateNamedPipe(
-        TEXT(_NAMED_PIPE_NAME),
-            PIPE_ACCESS_DUPLEX,
-            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-            PIPE_UNLIMITED_INSTANCES,
-            0,
-            0,
-            NMPWAIT_WAIT_FOREVER,
-            NULL);
+    createPip(hPipe);
 
-        if (INVALID_HANDLE_VALUE == hPipe)
-        {
-            std::cout << "created pipe failed!\n" << std::endl;
-        }
-        else {
-            cout << "waiting connecting pipe\n" << endl;
-            if (ConnectNamedPipe(hPipe, NULL) == FALSE) {
-                cout << "connect pipe failed\n" << endl;
-            }
-            else {
-                cout << "connect pipe success\n" << endl;
-            }
+    if (INVALID_HANDLE_VALUE == hPipe) {
+        std::cout << "created pipe failed!\n" << std::endl;
+        exit(-1);
+    }
 
-            while (1)
-            {
-                if (ReadFile(hPipe, buf, 256, &rlen, NULL) == FALSE)
-                {
-                    cout << "read data from pipe failed\n" << endl;
-                    //break;
+    cout << "waiting connecting pipe\n" << endl;
+
+    std::thread t_1([&]() {
+
+        while (1) {
+            if ( !_pipeConnected )   {
+
+                if (ConnectNamedPipe(hPipe, NULL) == FALSE) {
+                    cout << "connect pipe failed\n" << endl;
+                    _pipeConnected = false;
+                } else {
+                    cout << "connect pipe success\n" << endl;
+                    _pipeConnected = true;
+                    mutex tx;
+                    tx.lock();
+                    _index = 0;
+                    tx.unlock();
                 }
-                else
-                {
-                    //cout << "read data from pipe success\n" << endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+        }
+
+    });
+
+    std::thread t_2([&]() {
+
+        while (1) {
+
+            if ( _pipeConnected ) {
+
+                if (ReadFile(hPipe, buf, 256, &rlen, NULL) == FALSE) {
+                    cout << "read data from pipe failed\n" << endl;
+
+                    mutex tx;
+                    tx.lock();
+
+                    _index++;
+                    if (_index > 3) {
+                        _index = 0;
+                        tx.unlock();
+                        DisconnectNamedPipe(hPipe);
+                        _pipeConnected = false;
+
+                        killProcess(_WINDOWS_FAULT_EXE, _DAEMON_TARGET);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                        startProcess(_DAEMON_START);
+                    }
+
+                } else {
                     printf("from pipe read data=%s, size=%d\n", buf, rlen);
 
                     char wbuf[256] = "";
@@ -54,12 +90,20 @@ int main()
 
                     DWORD wlen = 0;
                     WriteFile(hPipe, wbuf, sizeof(wbuf), &wlen, NULL);
-                    Sleep(3000);
+                    _index = 0;
                 }
-            }
 
-            CloseHandle(hPipe);
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
         }
+    });
+
+    t_1.join();
+    t_2.join();
+
+
+    CloseHandle(hPipe);
     system("PAUSE");
     return 0;
 }

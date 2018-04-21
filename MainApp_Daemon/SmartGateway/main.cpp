@@ -1,8 +1,10 @@
 ﻿#include "mainwindow.h"
 #include <QApplication>
 #include <QTranslator>
-#include<QDebug>
 #include "smartwin.h"
+#ifdef DAEMON
+#include "daemon.h"
+#endif
 
 #define TRANS_FILE qApp->applicationDirPath() + "/translations/gateway_zh.qm"
 
@@ -15,6 +17,10 @@ int main(int argc, char *argv[])
     QTranslator trans;
     trans.load(TRANS_FILE);
     qApp->installTranslator(&trans);
+
+#ifdef DAEMON
+    Daemon m;
+#endif
 
     SmartWin w;
     w.show();

@@ -25,6 +25,9 @@ win32 {
     } else {
        message(the Qt version is $$[QT_VERSION])
     }
+DEFINES += DAEMON
+HEADERS += daemon.h
+SOURCES += daemon.cpp
 }
 
 
@@ -47,7 +50,7 @@ SOURCES += \
          smartwin.cpp\
 	linkageconfiguration.cpp \
         powerconfigdlg.cpp\
-     gatewaylinkerdlg.cpp \
+     gatewaylinkerdlg.cpp
 #    Translation.cpp
 
 HEADERS += \
@@ -56,7 +59,7 @@ HEADERS += \
         smartwin.h \
         powerconfigdlg.h\
         linkageconfiguration.h\
-    gatewaylinkerdlg.h \
+    gatewaylinkerdlg.h
 #    Translation.h
 
 

@@ -22,8 +22,14 @@ win32 {
        message(the Qt version is $$[QT_VERSION])
     }
 
+HEADERS += \
+    daemon.h
+
 SOURCES += \
+    daemon.cpp \
     mian.cpp
 }
+
+
 
 

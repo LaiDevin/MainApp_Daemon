@@ -20,6 +20,10 @@
 #include "ServerAgreementGBTool.h"
 #include "Tool.h"
 
+#ifdef DAEMON
+#include "daemon.h"
+#endif
+
 static bool _runingSerialThread = true;
 static bool _runingServerThread = true;
 static bool _runingHeartThread = true;
@@ -43,52 +47,52 @@ static bool getDescription(const unsigned char *strSrc, char *strDescription)
         int nLoop = (strSrc[4] << 8 | strSrc[5]);
         int nPoint = (strSrc[6] << 8 | strSrc[7]);
         switch(nFasID) {
-            case FAS_ID_JBQT_GST5000:
-            case FAS_ID_JBQG_GST5000:
-            case FAS_ID_JBQB_GST500:
-                sprintf(strDescription, "%02d%02d%02d", nHost, nLoop, nPoint);
-                break;
-            case FAS_ID_JBTT_JBF11S:
-                sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
-                break;
-            case FAS_ID_JBQB_JBF5012:
-                break;
-            case FAS_ID_JBQB_LN1010:
-                break;
-            case FAS_ID_Q100GZ2L_LA040:
-                sprintf(strDescription, "%03d-%03d", nLoop, nPoint);
-                break;
-            case FAS_ID_TB_TC3000:
-                break;
-            case FAS_ID_JBQB_OZH4800:
-                sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
-                break;
-            case FAS_ID_JBLB_QH8000B:
-                break;
-            case FAS_ID_JB_3208B:
-            case FAS_ID_JB_3208G:
-                sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
-                break;
-            case FAS_ID_JBQB_TC3020:
-                break;
-            case FAS_ID_JBTB_242:
-                break;
-            case FAS_ID_JBLB_CA2000SZ:
-                break;
-            case FAS_ID_JB_QGL_9000:
-                break;
-            case FAS_ID_JB_QBL_MN300:
-                break;
-            case FAS_ID_JB_TB_JBF_11S:
-                break;
-            case FAS_ID_JB_QT_OZH4800:
-                break;
-            case FAS_ID_JB_LG_QH8000:
-                break;
-            case FAS_ID_JB_TG_JBF_11SF:
-                break;
-            default:
-                return false;
+        case FAS_ID_JBQT_GST5000:
+        case FAS_ID_JBQG_GST5000:
+        case FAS_ID_JBQB_GST500:
+            sprintf(strDescription, "%02d%02d%02d", nHost, nLoop, nPoint);
+            break;
+        case FAS_ID_JBTT_JBF11S:
+            sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
+            break;
+        case FAS_ID_JBQB_JBF5012:
+            break;
+        case FAS_ID_JBQB_LN1010:
+            break;
+        case FAS_ID_Q100GZ2L_LA040:
+            sprintf(strDescription, "%03d-%03d", nLoop, nPoint);
+            break;
+        case FAS_ID_TB_TC3000:
+            break;
+        case FAS_ID_JBQB_OZH4800:
+            sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
+            break;
+        case FAS_ID_JBLB_QH8000B:
+            break;
+        case FAS_ID_JB_3208B:
+        case FAS_ID_JB_3208G:
+            sprintf(strDescription, "H%03dL%03dD%03d", nHost, nLoop, nPoint);
+            break;
+        case FAS_ID_JBQB_TC3020:
+            break;
+        case FAS_ID_JBTB_242:
+            break;
+        case FAS_ID_JBLB_CA2000SZ:
+            break;
+        case FAS_ID_JB_QGL_9000:
+            break;
+        case FAS_ID_JB_QBL_MN300:
+            break;
+        case FAS_ID_JB_TB_JBF_11S:
+            break;
+        case FAS_ID_JB_QT_OZH4800:
+            break;
+        case FAS_ID_JB_LG_QH8000:
+            break;
+        case FAS_ID_JB_TG_JBF_11SF:
+            break;
+        default:
+            return false;
         }
     }
     return true;
@@ -306,7 +310,11 @@ void SmartWin::createSerial()
 
 void SmartWin::initConnectSlots()
 {
-    connect(m_quitAction, &QAction::triggered, [&](){
+    connect(m_quitAction, &QAction::triggered, [&]() {
+#ifdef DAEMON
+        killProcess(_WINDOWS_FAULT_EXE, _DAEMON_TARGET);
+#endif
+
         _runingServerThread = false;
         _runingHeartThread = false;
         _runingSerialThread = false;
@@ -638,7 +646,7 @@ void SmartWin::runSerialThread()
 
                         std::string tmp(fasAddr);
                         if (!tmp.empty()) {
-                           writeL += ", 位置:" + tmp;
+                            writeL += ", 位置:" + tmp;
                         }
 
                         if (st.nBit1 == 1) {
@@ -674,8 +682,8 @@ void SmartWin::runSerialThread()
                             lck.unlock();
                             m_deque_cv.notify_all();
                             */
-                           ServerAgreementManager::getInstance()->sendData(
-                                     ServerAgreementGBTool::getBusinessNum(), v);
+                            ServerAgreementManager::getInstance()->sendData(
+                                        ServerAgreementGBTool::getBusinessNum(), v);
                         }
 
                     }
@@ -750,7 +758,7 @@ void SmartWin::runServerThread()
                         qDebug() << "Response\n";
                         break;
                     case 6: // deny  ... ignore
-                          qDebug() << "deny\n";
+                        qDebug() << "deny\n";
                         break;
                     default :break;
                     }
@@ -1079,10 +1087,10 @@ void SmartWin::readGateWayIni()
         } else if (v.Key == "Server_addr") {
             _domain = v.Value;
         } else if (v.Key == "b_userIP_chk") {
-           _isUserIp = std::stoi(v.Value) == 1 ? true : false;
+            _isUserIp = std::stoi(v.Value) == 1 ? true : false;
         } else if(v.Key == "CommunicationType"){
-           m_Network_Protocol = std::stoi(v.Value);
-           qDebug()<<"m_Network_Protocol"<<m_Network_Protocol;
+            m_Network_Protocol = std::stoi(v.Value);
+            qDebug()<<"m_Network_Protocol"<<m_Network_Protocol;
         }  else if (v.Key == "gatewayID") {
             m_gatewayId = std::stoull(v.Value);
         } else if (v.Key == "handleShake") {
