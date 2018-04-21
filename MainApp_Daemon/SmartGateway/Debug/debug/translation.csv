@@ -1,0 +1,8 @@
+baudrate,Baud Rate,波特率
+serial,Serial,串口号
+clearmsg,Clear Msg,清空消息
+save,Save,保存
+gateway,Gateway,网关
+power,Power,电源
+linkage,linkage,联动
+openserial,Open Serial,打开串口
